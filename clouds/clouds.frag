@@ -63,7 +63,7 @@ float cnoise(vec2 P)
 }
 
 struct Elipse {
-    vec2 center;
+    vec3 center;
     float major_axis;
     float minor_axis;
 };
@@ -84,12 +84,31 @@ float better_noise(vec2 uv, int resolution){
     return n;
 }
 
+float distance_ellipse(vec2 point, Elipse e) {
+    float distance_x = point.x - e.center.x;
+    float distance_y = point.y - e.center.y;
+    float ratio = e.minor_axis/e.major_axis;
+    return sqrt(distance_x*distance_x*ratio*ratio + distance_y*distance_y)*1/e.major_axis*2;
+}
+
+vec2 to_camera_space(vec3 point, vec3 camera_pos, vec3 camera_rot) {
+    vec3 camera_direction = normalize(camera_pos);
+    vec3 camera_right = normalize(cross(camera_direction, vec3(0,1,0)));
+    vec3 camera_up = normalize(cross(camera_right, camera_direction));
+    vec3 point_camera_space = point - camera_pos;
+    float x = dot(point_camera_space, camera_right);
+    float y = dot(point_camera_space, camera_up);
+    float z = dot(point_camera_space, camera_direction);
+    return vec2(x/z, y/z);
+}
+
 uniform sampler2D dtex;
 uniform sampler2D tex;
 uniform sampler2D background;
 uniform float osg_FrameTime;
 uniform vec3 camera_pos;
 uniform vec3 camera_rot;
+uniform mat4 p3d_ModelViewProjectionMatrix;
 in vec2 uv;
 out vec4 color;
 void main() {
@@ -97,20 +116,28 @@ void main() {
     vec4 depth = texture(dtex, uv);
 
     Elipse e;
-    e.center = vec2(0.25, 0.75)+vec2(0.5,0.5)*vec2(sin(osg_FrameTime), 0);
+    e.center = vec3(1, 1, 0.0);
     e.major_axis = 0.2;
     e.minor_axis = 0.1;
 
 
     if (depth == vec4(1)) {
+        /*
         if (is_in_elipse(uv, e)) {
             vec4 background_color = texture(background, uv);
             vec4 noise_color = vec4(better_noise(uv,resolution));
-            float ratio = 1-distance(uv, e.center)*5;
+            float ratio = 1-distance_ellipse(uv, e);
             color = mix(background_color, noise_color, ratio);
         }
         else {
             color = texture(background, uv);
+        }
+        */
+        if (to_camera_space(e.center, camera_pos, camera_rot)== uv) {
+            color = vec4(1,0,0,1);
+        }
+        else {
+            color = vec4(0,0,0,1);
         }
     }
     else {
