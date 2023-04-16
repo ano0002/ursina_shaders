@@ -191,8 +191,8 @@ uniform float osg_FrameTime;
 uniform vec3 camera_pos;
 uniform vec3 camera_rot;
 uniform float camera_fov;
+uniform vec2 window_size;
 in vec2 uv;
-in vec2 window_size;
 out vec4 color;
 void main() {
     int resolution = 32;
@@ -210,7 +210,7 @@ void main() {
         mat3 camera_matrix_inv = inverse(camera_matrix);
 
         vec2 cloud_uv = computeNDCCoordinates(cloud_pos,camera_matrix_inv,camera_pos);
-        /*
+        
         float cloud_radius = 0.1;
         if (distance(cloud_uv,uv)<cloud_radius) {
             Elipse e;
@@ -226,9 +226,6 @@ void main() {
         else {
             color = vec4(0.0, 0.0, 1.0,1.0);//texture(background, uv);
         }
-        */
-        color = vec4(cloud_uv*10,0.0,1.0);
-
 
     }
     else {
