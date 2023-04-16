@@ -63,7 +63,7 @@ float cnoise(vec2 P)
 }
 
 struct Elipse {
-    vec3 center;
+    vec2 center;
     float major_axis;
     float minor_axis;
 };
@@ -87,19 +87,97 @@ float better_noise(vec2 uv, int resolution){
 float distance_ellipse(vec2 point, Elipse e) {
     float distance_x = point.x - e.center.x;
     float distance_y = point.y - e.center.y;
-    float ratio = e.minor_axis/e.major_axis;
-    return sqrt(distance_x*distance_x*ratio*ratio + distance_y*distance_y)*1/e.major_axis*2;
+    float ratio = e.major_axis/e.minor_axis;
+    return sqrt(distance_x*distance_x*ratio + distance_y*distance_y)/(e.major_axis*2);
 }
 
-vec2 to_camera_space(vec3 point, vec3 camera_pos, vec3 camera_rot) {
-    vec3 camera_direction = normalize(camera_pos);
-    vec3 camera_right = normalize(cross(camera_direction, vec3(0,1,0)));
-    vec3 camera_up = normalize(cross(camera_right, camera_direction));
-    vec3 point_camera_space = point - camera_pos;
-    float x = dot(point_camera_space, camera_right);
-    float y = dot(point_camera_space, camera_up);
-    float z = dot(point_camera_space, camera_direction);
-    return vec2(x/z, y/z);
+vec3 rotateX(vec3 position,float angle){
+    float s = sin(angle);
+    float c = cos(angle);
+    mat3 m = mat3(
+        1,0,0,
+        0,c,-s,
+        0,s,c
+    );
+    return m*position;
+}
+
+vec3 rotateY(vec3 position,float angle){
+    float s = sin(angle);
+    float c = cos(angle);
+    mat3 m = mat3(
+        c,0,s,
+        0,1,0,
+        -s,0,c
+    );
+    return m*position;
+}
+
+vec3 rotateZ(vec3 position,float angle){
+    float s = sin(angle);
+    float c = cos(angle);
+    mat3 m = mat3(
+        c,-s,0,
+        s,c,0,
+        0,0,1
+    );
+    return m*position;
+}
+
+
+vec3 rotate(vec3 position,vec3 rotation){
+    vec3 p = position;
+    p = rotateX(p,rotation.x);
+    p = rotateY(p,rotation.y);
+    p = rotateZ(p,rotation.z);
+    return p;
+}
+vec3 get_camera_normal(vec3 camera_rot,vec3 camera_pos){
+    vec3 camera_normal = vec3(0,0,1);
+    camera_normal = rotate(camera_normal,camera_rot);
+    return camera_normal;
+}
+
+vec3[2] get_camera_vectors(vec3 camera_rot,vec3 camera_pos){
+    vec3 camera_normal = get_camera_normal(camera_rot, camera_pos);
+    vec3 camera_up = vec3(0,1,0);
+    camera_up = rotate(camera_up,camera_rot);
+    vec3 camera_right = cross(camera_normal,camera_up);
+    return vec3[2](camera_right,camera_up);
+}
+
+mat3 inverse(mat3 matrix){
+    float a = matrix[0][0], b = matrix[0][1], c = matrix[0][2],
+          d = matrix[1][0], e = matrix[1][1], f = matrix[1][2],
+          g = matrix[2][0], h = matrix[2][1], i = matrix[2][2];
+
+    float A = e*i - f*h;
+    float B = c*h - b*i;
+    float C = b*f - c*e;
+    float D = f*g - d*i;
+    float E = a*i - c*g;
+    float F = c*d - a*f;
+    float G = d*h - e*g;
+    float H = b*g - a*h;
+    float I = a*e - b*d;
+
+    float det = a*A - b*D + c*G;
+
+    return mat3(A, B, C, D, E, F, G, H, I) / det;
+}
+
+
+vec2 computeNDCCoordinates(
+    vec3 pWorld,
+    mat3 p3d_ModelViewProjectionMatrix,
+    vec3 camera_pos )
+{   
+    pWorld = pWorld;
+    vec3 pCamera =  p3d_ModelViewProjectionMatrix *  pWorld;
+    pCamera -= camera_pos;
+    vec2 pNDC = pCamera.xy / pCamera.z;
+    vec2 pUV = pNDC *0.5-0.5;
+    return pUV;
 }
 
 uniform sampler2D dtex;
@@ -108,36 +186,40 @@ uniform sampler2D background;
 uniform float osg_FrameTime;
 uniform vec3 camera_pos;
 uniform vec3 camera_rot;
-uniform mat4 p3d_ModelViewProjectionMatrix;
+uniform float camera_fov;
 in vec2 uv;
+in vec2 window_size;
 out vec4 color;
 void main() {
     int resolution = 32;
     vec4 depth = texture(dtex, uv);
 
-    Elipse e;
-    e.center = vec3(1, 1, 0.0);
-    e.major_axis = 0.2;
-    e.minor_axis = 0.1;
+    vec3 cloud_pos = vec3(1,1,1);
 
 
     if (depth == vec4(1)) {
-        /*
-        if (is_in_elipse(uv, e)) {
-            vec4 background_color = texture(background, uv);
-            vec4 noise_color = vec4(better_noise(uv,resolution));
+        vec3 rad_camera_rot = vec3(radians(camera_rot.x),radians(camera_rot.y),radians(camera_rot.z));
+
+        vec3 camera_normal = get_camera_normal(rad_camera_rot,camera_pos);
+        vec3[2] camera_vectors = get_camera_vectors(rad_camera_rot,camera_pos);
+        mat3 camera_matrix = mat3(camera_vectors[0],camera_vectors[1],camera_normal);
+        mat3 camera_matrix_inv = inverse(camera_matrix);
+
+        vec2 cloud_uv = computeNDCCoordinates(cloud_pos,camera_matrix_inv,camera_pos);
+        float cloud_radius = 0.1;
+        if (distance(cloud_uv,uv)<cloud_radius) {
+            Elipse e;
+            e.center = cloud_uv;
+            e.major_axis = 0.2;
+            e.minor_axis = 0.1;
+            vec4 background_color = vec4(0.0, 0.0, 1.0,1.0);//texture(background, uv);
+            //vec4 noise_color = vec4(vec3(better_noise(uv,resolution)),1.0);
             float ratio = 1-distance_ellipse(uv, e);
-            color = mix(background_color, noise_color, ratio);
+
+            color = mix(background_color, vec4(1.0), better_noise(uv,resolution)*ratio);
         }
         else {
-            color = texture(background, uv);
-        }
-        */
-        if (to_camera_space(e.center, camera_pos, camera_rot)== uv) {
-            color = vec4(1,0,0,1);
-        }
-        else {
-            color = vec4(0,0,0,1);
+            color = vec4(0.0, 0.0, 1.0,1.0);//texture(background, uv);
         }
     }
     else {

@@ -11,8 +11,11 @@ clouds_shader = Shader(language=Shader.GLSL, fragment=open('clouds.frag').read()
 
 EditorCamera()
 
-Entity(model="cube", texture="white_cube", scale=1, color=color.azure)
+
+Entity(model="cube", texture="white_cube", color=color.red)
+Entity(model="cube",position=(1,1,1), scale=.01)
 Entity(model = "sphere", texture="white_cube", scale=1, color=color.yellow,y=1)
+
 
 camera.shader = clouds_shader
 camera.set_shader_input('camera_pos', camera.position)
@@ -20,7 +23,8 @@ camera.set_shader_input('camera_rot', camera.rotation)
 
 
 def update():
-    camera.set_shader_input('camera_pos', camera.position)
-    camera.set_shader_input('camera_rot', camera.rotation)
-
+    fov = camera.fov
+    camera.set_shader_input('camera_pos', camera.world_position)
+    camera.set_shader_input('camera_rot', camera.world_rotation)
+    camera.set_shader_input('camera_fov', fov)
 app.run()
