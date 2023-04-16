@@ -20,7 +20,7 @@ Entity(model = "sphere", texture="white_cube", scale=1, color=color.yellow,y=1)
 camera.shader = clouds_shader
 camera.set_shader_input('camera_pos', camera.position)
 camera.set_shader_input('camera_rot', camera.rotation)
-
+camera.set_shader_input('camera_fov', camera.fov)
 
 def update():
     fov = camera.fov
