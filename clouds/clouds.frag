@@ -146,24 +146,31 @@ vec3[2] get_camera_vectors(vec3 camera_rot,vec3 camera_pos){
     return vec3[2](camera_right,camera_up);
 }
 
-mat3 inverse(mat3 matrix){
-    float a = matrix[0][0], b = matrix[0][1], c = matrix[0][2],
-          d = matrix[1][0], e = matrix[1][1], f = matrix[1][2],
-          g = matrix[2][0], h = matrix[2][1], i = matrix[2][2];
+mat3 inverse(mat3 m) {
+  float a11 = m[0][0], a12 = m[0][1], a13 = m[0][2];
+  float a21 = m[1][0], a22 = m[1][1], a23 = m[1][2];
+  float a31 = m[2][0], a32 = m[2][1], a33 = m[2][2];
 
-    float A = e*i - f*h;
-    float B = c*h - b*i;
-    float C = b*f - c*e;
-    float D = f*g - d*i;
-    float E = a*i - c*g;
-    float F = c*d - a*f;
-    float G = d*h - e*g;
-    float H = b*g - a*h;
-    float I = a*e - b*d;
+  float b00 = a22 * a33 - a23 * a32;
+  float b01 = a13 * a32 - a12 * a33;
+  float b02 = a12 * a23 - a13 * a22;
+  float b10 = a23 * a31 - a21 * a33;
+  float b11 = a11 * a33 - a13 * a31;
+  float b12 = a13 * a21 - a11 * a23;
+  float b20 = a21 * a32 - a22 * a31;
+  float b21 = a12 * a31 - a11 * a32;
+  float b22 = a11 * a22 - a12 * a21;
 
-    float det = a*A - b*D + c*G;
+  float det = a11 * b00 + a12 * b10 + a13 * b20;
 
-    return mat3(A, B, C, D, E, F, G, H, I) / det;
+  if (det == 0.0) {
+    return mat3(1.0); // Matrix is singular, return identity matrix
+  }
+
+  mat3 inv;
+  inv = mat3(b00, b01, b02, b10, b11, b12, b20, b21, b22) / det;
+
+  return inv;
 }
 
 
@@ -171,13 +178,10 @@ vec2 computeNDCCoordinates(
     vec3 pWorld,
     mat3 p3d_ModelViewProjectionMatrix,
     vec3 camera_pos )
-{   
-    pWorld = pWorld;
-    vec3 pCamera =  p3d_ModelViewProjectionMatrix *  pWorld;
-    pCamera -= camera_pos;
+{  
+    vec3 pCamera = p3d_ModelViewProjectionMatrix * (pWorld - camera_pos);
     vec2 pNDC = pCamera.xy / pCamera.z;
-    vec2 pUV = pNDC *0.5-0.5;
-    return pUV;
+    return pNDC;
 }
 
 uniform sampler2D dtex;
@@ -206,6 +210,7 @@ void main() {
         mat3 camera_matrix_inv = inverse(camera_matrix);
 
         vec2 cloud_uv = computeNDCCoordinates(cloud_pos,camera_matrix_inv,camera_pos);
+        /*
         float cloud_radius = 0.1;
         if (distance(cloud_uv,uv)<cloud_radius) {
             Elipse e;
@@ -221,6 +226,10 @@ void main() {
         else {
             color = vec4(0.0, 0.0, 1.0,1.0);//texture(background, uv);
         }
+        */
+        color = vec4(cloud_uv*10,0.0,1.0);
+
+
     }
     else {
         color = texture(tex, uv);
