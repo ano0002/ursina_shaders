@@ -2,9 +2,9 @@ from ursina import *
 
 app = Ursina()
 
-fire = Entity(model='cube', texture = "brick")
+water = Entity(model='cube', texture = "brick")
 
-fire_shader = Shader(fragment='''
+water_shader = Shader(fragment='''
 #version 430
                       
 vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
@@ -43,33 +43,32 @@ uniform float distorsion;
 out vec4 fragColor;
 void main()
 {
-    vec4 color = texture(p3d_Texture0, uv);
-    float red1 = snoise(uv*resolution+iTime*0.2);
-    vec3 col = vec3(1,0,0)*abs(red1)*(-uv.y*0.4);
-    float red2 = snoise(uv*resolution-iTime*0.3);
-    col += vec3(1,0,0)*abs(red2)*(-uv.y*0.4);
-    float yellow1 = snoise(uv*resolution-iTime*0.1);
-    col += vec3(1,1,0)*abs(yellow1)*(-uv.y*0.2);
-    
+    float offset = snoise(uv*resolution+iTime*0.2)*distorsion;
+    vec4 color = texture(p3d_Texture0, uv+vec2(offset));
+    float light1 = snoise(uv*resolution+iTime*0.2);
+    vec3 col = mix(vec3(0,0.2,0.7),vec3(light1)*0.4,0.5);
+    float light2 = snoise(uv*resolution-iTime*0.04);
+    col += mix(vec3(1,1,1),vec3(light2)*0.2,0.8);
     float brightness = col.x + col.y + col.z;
     float threshold = 0.8;
     if (brightness > 2*threshold){
         col = vec3(1);
     }
-    color = mix(vec4(col,1),color,0.5);
+    color = mix(vec4(col,1),color,0.4);
     // Output to screen
     fragColor = color;
 }''')
 
-fire.shader = fire_shader
+water.shader = water_shader
 
 start = time.time()
 
-fire.set_shader_input("iTime",0)
-fire.set_shader_input("resolution",4)
+water.set_shader_input("iTime",0)
+water.set_shader_input("resolution",4)
+water.set_shader_input("distorsion",0.02)
 
 def update():
-    fire.set_shader_input("iTime", time.time()-start)
+    water.set_shader_input("iTime", time.time()-start)
 
 EditorCamera()
 

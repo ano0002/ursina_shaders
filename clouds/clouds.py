@@ -21,7 +21,7 @@ camera.shader = clouds_shader
 camera.set_shader_input('camera_pos', camera.position)
 camera.set_shader_input('camera_rot', camera.rotation)
 camera.set_shader_input('camera_fov', camera.fov)
-
+camera.set_shader_input("window_size", window.size)
 def update():
     fov = camera.fov
     camera.set_shader_input('camera_pos', camera.world_position)
