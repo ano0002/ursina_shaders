@@ -14,31 +14,40 @@ void main()
     vec3 color = texture(p3d_Texture0, new_uv).rgb;
     float alpha = texture(p3d_Texture0, new_uv).a;
     
-    if (alpha == 0.0 || new_uv.x < 0.0 || new_uv.x > 1.0 || new_uv.y < 0.0 || new_uv.y > 1.0) {
+    if (alpha == 0.0 || new_uv.x < 0.0 || new_uv.x > 1.0 || new_uv.y < 0.0 || new_uv.y > 1.0 ) {
         color = outline_color.rgb;
 
-        // Get the color of the pixel at the current UV coordinate + outline_thickness
-        float alpha_r = texture(p3d_Texture0, new_uv + vec2(offset.x,0)).a;
+        if (!(new_uv.x+offset.x < 0.0) && !(new_uv.x+offset.x > 1.0)) {
+            // Get the color of the pixel at the current UV coordinate + outline_thickness
+            float alpha_r = texture(p3d_Texture0, new_uv + vec2(offset.x,0)).a;
 
-        // If the alpha of the pixel at the current UV coordinate + outline_thickness is 0, then we are on the outline
-        if (alpha_r != 0.0) {
-            alpha = 1.0;
+            // If the alpha of the pixel at the current UV coordinate + outline_thickness is 0, then we are on the outline
+            if (alpha_r != 0.0) {
+                alpha = 1.0;
+            }
         }
 
-        float alpha_l = texture(p3d_Texture0, new_uv + vec2(-offset.x,0)).a;
-        if (alpha_l != 0.0) {
-            alpha = 1.0;
+        if (!(new_uv.x-offset.x > 1.0) && !(new_uv.x-offset.x < 0.0)){
+            float alpha_l = texture(p3d_Texture0, new_uv + vec2(-offset.x,0)).a;
+            if (alpha_l != 0.0) {
+                alpha = 1.0;
+            }
+        }
+        
+        if (!(new_uv.y+offset.y < 0.0) && !(new_uv.y+offset.y > 1.0)){
+            float alpha_u = texture(p3d_Texture0, new_uv + vec2(0,offset.y)).a;
+            if (alpha_u != 0.0) {
+                alpha = 1.0;
+            }
         }
 
-        float alpha_u = texture(p3d_Texture0, new_uv + vec2(0,offset.y)).a;
-        if (alpha_u != 0.0) {
-            alpha = 1.0;
+        if (!(new_uv.y-offset.y > 1.0) && !(new_uv.y-offset.y < 0.0)) {
+            float alpha_d = texture(p3d_Texture0, new_uv + vec2(0,-offset.y)).a;
+            if (alpha_d != 0.0) {
+                alpha = 1.0;
+            }
         }
-
-        float alpha_d = texture(p3d_Texture0, new_uv + vec2(0,-offset.y)).a;
-        if (alpha_d != 0.0) {
-            alpha = 1.0;
-        }
+        
     }
 
 
