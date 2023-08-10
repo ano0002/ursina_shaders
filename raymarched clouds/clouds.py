@@ -26,7 +26,7 @@ camera.set_shader_input('light_color', sun.color)
 camera.set_shader_input("aspect_ratio", camera.aspect_ratio)
 
 def update():
-    camera.set_shader_input("camera_direction", camera.rotation*Vec3(-1,-1,1))
+    camera.set_shader_input("camera_direction", camera.forward*Vec3(-1,-1,1))
     camera.set_shader_input("camera_position", Vec3(camera.position.x, camera.position.z, camera.position.y))
 
 
