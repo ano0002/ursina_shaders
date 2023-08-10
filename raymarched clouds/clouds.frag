@@ -13,8 +13,6 @@ uniform vec3 camera_position;
 uniform float aspect_ratio;
 uniform vec3 wind_direction;
 
-const float M_PI = 3.1415926535897932384626433832795;
-
 float rand(vec2 n) { 
 	return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
 }
@@ -56,144 +54,82 @@ float noise(vec3 p){
     return o4.y * d.y + o4.x * (1.0 - d.y);
 }
 
-mat3 rotationMatrix(vec3 axis, float angle){
-    axis = normalize(axis);
-    float s = sin(angle);
-    float c = cos(angle);
-    float oc = 1.0 - c;
-
-    return mat3(
-        oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,
-        oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,
-        oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c
-    );
+float map5( in vec3 p )
+{    
+    vec3 q = p - vec3(0.0,0.1,1.0)*osg_FrameTime;    
+    float f;
+    f  = 0.50000*noise( q ); q = q*2.02;    
+    f += 0.25000*noise( q ); q = q*2.03;    
+    f += 0.12500*noise( q ); q = q*2.01;    
+    f += 0.06250*noise( q ); q = q*2.02;    
+    f += 0.03125*noise( q );    
+    return clamp( 1.5 - p.y - 2.0 + 1.75*f, 0.0, 1.0 );
+}
+float map4( in vec3 p )
+{    
+    vec3 q = p - vec3(0.0,0.1,1.0)*osg_FrameTime;    
+    float f;
+    f  = 0.50000*noise( q ); q = q*2.02;    
+    f += 0.25000*noise( q ); q = q*2.03;    
+    f += 0.12500*noise( q ); q = q*2.01;   
+    f += 0.06250*noise( q );    
+    return clamp( 1.5 - p.y - 2.0 + 1.75*f, 0.0, 1.0 );
+}
+float map3( in vec3 p )
+{
+    vec3 q = p - vec3(0.0,0.1,1.0)*osg_FrameTime;    
+    float f;
+    f  = 0.50000*noise( q ); q = q*2.02;    
+    f += 0.25000*noise( q ); q = q*2.03;    f += 0.12500*noise( q );    
+    return clamp( 1.5 - p.y - 2.0 + 1.75*f, 0.0, 1.0 );
+}
+float map2( in vec3 p )
+{    
+    vec3 q = p - vec3(0.0,0.1,1.0)*osg_FrameTime;    
+    float f;
+    f  = 0.50000*noise( q ); 
+    q = q*2.02;    f += 0.25000*noise( q );;    
+    return clamp( 1.5 - p.y - 2.0 + 1.75*f, 0.0, 1.0 );
 }
 
-float beerLambert(float density, float dist){
-    return exp(-dist * density);
+const vec3 sundir = light_direction;
+
+#define MARCH(STEPS,MAPLOD) for(int i=0; i<STEPS; i++) { vec3 pos = ro + t*rd; if( pos.y<-3.0 || pos.y>2.0 || sum.a>0.99 ) break; float den = MAPLOD( pos ); if( den>0.01 ) { float dif = clamp((den - MAPLOD(pos+0.3*sundir))/0.6, 0.0, 1.0 ); vec3  lin = vec3(1.0,0.6,0.3)*dif+vec3(0.91,0.98,1.05); vec4  col = vec4( mix( vec3(1.0,0.95,0.8), vec3(0.25,0.3,0.35), den ), den ); col.xyz *= lin; col.xyz = mix( col.xyz, bgcol, 1.0-exp(-0.003*t*t) ); col.w *= 0.4; col.rgb *= col.a; sum += col*(1.0-sum.a); } t += max(0.06,0.05*t); }
+
+vec4 raymarch( in vec3 ro, in vec3 rd, in vec3 bgcol, in ivec2 px )
+{    
+    vec4 sum = vec4(0.0);    
+    float t = 0.05*two_noise(px&255).x;    
+    MARCH(40,map5);    
+    MARCH(40,map4);    
+    MARCH(30,map3);    
+    MARCH(30,map2);    
+    return clamp( sum, 0.0, 1.0 );
 }
 
-float henveyGreenstein(float g, float cos_theta){
-    float g2 = g * g;
-    float denom = 1.0 + g2 - 2.0 * g * cos_theta;
-    return (1.0 - g2) / (4.0 * M_PI * pow(denom, 1.5));
+vec4 render( in vec3 ro, in vec3 rd, in ivec2 px , in vec2 uv)
+{
+    // background sky         
+    vec3 col = texture2D(tex,uv).rgb;
+    // clouds        
+    vec4 res = raymarch( ro, rd, col, px );    
+    col = col*(1.0-res.w) + res.xyz;
+
+    return vec4( col, 1.0 );
 }
 
-struct rounded_box{
-    vec3 center;
-    vec3 size;
-    float radius;
-};
-
-float rounded_box_sdf(vec3 p, rounded_box b){
-    vec3 d = abs(p - b.center) - b.size + vec3(b.radius);
-    return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0)) - b.radius;
-}
-
-vec2 lightRayMarch(vec3 origin, vec3 direction, float maxDistance, float resolution){
-    float dist = 0.0;
-    bool hit = false;
-    float hit_pos = 0.0;
-    float hit_dist = 0.0;
-    rounded_box b = rounded_box(vec3(0, 0, 0), vec3(5), 0.4);
-    float max_object_depth = 35;
-    float current_step = 0;
-    while (current_step < resolution){
-        vec3 p = origin + direction * dist;
-        float d = rounded_box_sdf(p, b);
-        if(d < 0.001){
-            if (hit==false){
-                hit = true;
-                hit_pos = dist;
-            }
-            else{
-                hit_dist += max_object_depth/(resolution-current_step) * noise(p*3.0+wind_direction*osg_FrameTime);
-            }
-        }
-        else{
-            if (hit==true){
-                break;
-            }
-        }
-        if (hit==false){
-            dist += d;
-
-        }
-        else{
-            dist += max_object_depth/(resolution-current_step);// * noise(p*10.0);
-        }
-        current_step += 1;
-        
-    }
-    return vec2(hit, hit_dist);
-}
-
-vec3 rayMarch(vec3 origin, vec3 direction, float maxDistance, float resolution){
-    float dist = 0.0;
-    bool hit = false;
-    float hit_pos = 0.0;
-    float hit_dist = 0.0;
-    rounded_box b = rounded_box(vec3(0, 0, 0), vec3(5), 0.4);
-    float max_object_depth = 35;
-    float current_step = 0;
-    float total_light = 0.0;
-    while (current_step < resolution){
-        vec3 p = origin + direction * dist;
-        float d = rounded_box_sdf(p, b);
-        if(d < 0.001){
-            if (hit==false){
-                hit = true;
-                hit_pos = dist;
-            }
-            else{
-                hit_dist += max_object_depth/(resolution-current_step) * (0.5+0.5*noise(p*3.0+wind_direction*osg_FrameTime));
-                vec2 ray = lightRayMarch(p,normalize(light_position - p), 3.0, 5.0);
-                if (ray.x == 1.0){
-                    total_light += beerLambert(0.1, ray.y);
-                }
-            }
-        }
-        else{
-            if (hit==true){
-                break;
-            }
-        }
-        if (hit==false){
-            dist += d;
-
-        }
-        else{
-            dist += max_object_depth/(resolution-current_step);// * noise(p*10.0);
-        }
-        current_step += 1;
-        
-    }
-    return vec3(hit, hit_dist, total_light);
-}
-
-
+out vec4 fragColor ;
 in vec2 uv;
-out vec4 fragColor;
-void main() {
-    vec2 new_uv = uv * 2.0 - 1.0;
-    new_uv.x *= aspect_ratio;
+void main()
+{
+    vec2 p = uv * 2.0 - 1.0;
 
-    vec4 background = texture2D(tex,uv);
-
-    vec3 direction_new = camera_direction;
-
-    vec3 up = p3d_NormalMatrix * vec3(0, 1, 0);
-    vec3 right = normalize(cross(direction_new, up));
-
-    vec3 direction = normalize(direction_new)+new_uv.x*right+new_uv.y*-up;
-    vec3 origin = camera_position;
-    vec3 hit = rayMarch(origin, direction, 90.0, 100.0);
-    if(hit.x == 0.0){
-        fragColor = background;
-        return;
-    }
-    float depth = hit.y;
-    float total_light = hit.z;
-    float transparency = beerLambert(density, depth);
-    fragColor = mix(vec4(vec3(total_light),1),background, transparency);
+    // camera
+    vec3 ro = camera_direction;
+	vec3 ta = vec3(0.0, 5.0, 0.0);
+    mat3 ca = p3d_NormalMatrix;
+    // ray
+    vec3 rd = ca * normalize( vec3(p.xy,1.5));
+    
+    fragColor = render( ro, rd, ivec2(uv-0.5) ,uv);
 }
