@@ -1,8 +1,10 @@
 #version 430
 
 uniform float aspect_ratio;
+uniform vec3 camera_up;
+uniform vec3 camera_right;
+uniform vec3 camera_forward;
 uniform vec3 camera_pos;
-uniform vec3 camera_rot;
 
 uniform vec2 window_size;
 
@@ -185,7 +187,7 @@ float GetLight(vec3 p)
     // Directional light
     vec3 n = GetNormal(p); // Normal Vector
    
-    vec3 u_light_dir = normalize(light_dir.xzy*rot_to_normal+trans_to_normal);
+    vec3 u_light_dir = normalize(light_dir.xzy*rot_to_normal);
 
     float dif = dot(n,u_light_dir); // Diffuse light
     dif = clamp(dif + 0.8,0.,1.); // Clamp so it doesnt go below 0
@@ -217,28 +219,7 @@ void main()
     vec4 background = texture2D(background_tex, adapted_uv);
     vec3 ro = camera_pos;
 
-    /*
-    TODO : Fix camera rotation
-
-    vec3 u_camera_rot = vec3(camera_rot.x,camera_rot.z,camera_rot.y);
-
-    vec3 v = cross(u_camera_rot, vec3(0, 0, 1));
-    float s = length(v);
-    float c = dot(u_camera_rot, vec3(0, 0, 1));
-
-    mat3 skew_symmetric_cross_product = mat3(
-        vec3(0, -v.z, v.y),
-        vec3(v.z, 0, -v.x),
-        vec3(-v.y, v.x, 0)
-    );
-
-    mat3 rot = id_three + skew_symmetric_cross_product + skew_symmetric_cross_product * skew_symmetric_cross_product * ((1 - c) / (s * s));
-
-    vec3 up =  vec3(0, 1, 0) * rot ;
-    vec3 right = normalize(cross(u_camera_rot, up));
-    vec3 rd = normalize(right*uv.x+up*uv.y+u_camera_rot);
-    */
-    vec3 rd = normalize(vec3(uv.x,uv.y,1));
+    vec3 rd = normalize(camera_right*uv.x+camera_up*uv.y+camera_forward);
 
     float d = clamp(0,RayMarch(ro,rd),MAX_DIST); // Distance
     vec3 p = ro + rd * d;

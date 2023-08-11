@@ -50,8 +50,10 @@ camera.set_shader_input("background_tex", load_texture("sky_sunset"))
 camera.set_shader_input("window_size", window.size)
 
 def update():
-    camera.set_shader_input("camera_rot", camera.world_rotation)
     camera.set_shader_input("camera_pos",camera.world_position)
+    camera.set_shader_input("camera_forward",camera.forward)
+    camera.set_shader_input("camera_right",camera.right)
+    camera.set_shader_input("camera_up",camera.up)
     camera.set_shader_input("light_dir", sun.world_rotation)
     sun.look_at(Vec3(sin(time.time()),-1,cos(time.time())))
     camera.set_shader_input("density", slider.value)
