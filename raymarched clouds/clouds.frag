@@ -187,7 +187,7 @@ float GetLight(vec3 p)
     // Directional light
     vec3 n = GetNormal(p); // Normal Vector
    
-    vec3 u_light_dir = normalize(light_dir.xzy*rot_to_normal);
+    vec3 u_light_dir = normalize(light_dir.xzy*rot_to_normal+trans_to_normal);
 
     float dif = dot(n,u_light_dir); // Diffuse light
     dif = clamp(dif + 0.8,0.,1.); // Clamp so it doesnt go below 0

@@ -54,8 +54,7 @@ def update():
     camera.set_shader_input("camera_forward",camera.forward)
     camera.set_shader_input("camera_right",camera.right)
     camera.set_shader_input("camera_up",camera.up)
-    camera.set_shader_input("light_dir", sun.world_rotation)
-    sun.look_at(Vec3(sin(time.time()),-1,cos(time.time())))
+    camera.set_shader_input("light_dir", sun.forward)
     camera.set_shader_input("density", slider.value)
     camera.set_shader_input("cloud_scale", slider2.value)
     
