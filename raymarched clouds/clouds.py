@@ -20,7 +20,7 @@ for i in range(16):
         )
 
 
-sun = DirectionalLight(color=color.red)
+sun = DirectionalLight(color=color.white)
 sun.look_at(Vec3(1,-1,1))
 
 # Shader
