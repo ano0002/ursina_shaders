@@ -20,7 +20,7 @@ for i in range(16):
         )
 
 
-sun = DirectionalLight()
+sun = DirectionalLight(color=color.red)
 sun.look_at(Vec3(1,-1,1))
 
 # Shader
@@ -45,7 +45,8 @@ slider2 = Slider(min=1, max=100, step=0.01, default=10, position=(-.5, -.3), par
 
 camera.shader = clouds_shader
 
-camera.set_shader_input("light_dir", sun.world_rotation)
+camera.set_shader_input("light_color", sun.color)
+camera.set_shader_input("ambient_strength", 0.3)
 camera.set_shader_input("background_tex", load_texture("sky_sunset"))
 camera.set_shader_input("window_size", window.size)
 
@@ -54,6 +55,7 @@ def update():
     camera.set_shader_input("camera_forward",camera.forward)
     camera.set_shader_input("camera_right",camera.right)
     camera.set_shader_input("camera_up",camera.up)
+    sun.look_at(Vec3(sin(time.time()),-1,cos(time.time())))
     camera.set_shader_input("light_dir", sun.forward)
     camera.set_shader_input("density", slider.value)
     camera.set_shader_input("cloud_scale", slider2.value)

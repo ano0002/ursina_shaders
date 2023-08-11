@@ -18,6 +18,7 @@ uniform vec2 wind_speed;
 
 uniform vec3 light_dir;
 uniform vec3 light_color;
+uniform float ambient_strength;
 
 uniform float threshold;
 
@@ -34,7 +35,6 @@ uniform sampler2D dtex;
 #define MAX_DIST 100.
 #define SURFACE_DIST .01
 
-const vec3 rot_to_normal = vec3(-1,-1,1);
 
 // Some useful functions
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -182,16 +182,22 @@ vec3 GetNormal(vec3 p)
 }
 
 
-float GetLight(vec3 p)
+vec3 GetLight(vec3 p)
 { 
+    //Ambient light
+    vec3 dif = light_color * ambient_strength;
+
     // Directional light
     vec3 n = GetNormal(p); // Normal Vector
    
-    vec3 u_light_dir = normalize(light_dir.xzy*rot_to_normal+trans_to_normal);
+    vec3 u_light_dir = normalize(light_dir.xzy*vec3(-1,-1,1));
 
-    float dif = dot(n,u_light_dir); // Diffuse light
-    dif = clamp(dif + 0.8,0.,1.); // Clamp so it doesnt go below 0
-   
+
+    float brightness = dot(n, u_light_dir);
+    brightness = clamp(brightness, 0, 1);
+
+    dif += light_color * brightness;
+
     /*
     // Shadows
     float d = RayMarch(p+n*SURF_DIST*2., l); 
@@ -224,7 +230,7 @@ void main()
     float d = clamp(0,RayMarch(ro,rd),MAX_DIST); // Distance
     vec3 p = ro + rd * d;
 
-    vec3 l = vec3(GetLight(p)); // Light
+    vec3 l = GetLight(p); // Light
 
     float t = getTransparency(p);
 
@@ -234,5 +240,5 @@ void main()
         color = background;
         return;
     }
-    color = mix(vec4(vec3(l),1),background,t);
+    color = mix(vec4(l,1),background,t);
 }
