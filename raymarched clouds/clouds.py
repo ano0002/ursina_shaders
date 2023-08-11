@@ -33,12 +33,15 @@ clouds_shader = Shader(language=Shader.GLSL,
                            "cloud_height" : 1,
                            "threshold" : 0.7,
                            "sky_height" : 15,
-                           "density" : -0.45
+                           "density" : -0.45,
+                           "cloud_scale" : 10,
+                           "wind_speed" : Vec2(0.1),
                           }
                        )
 
 
 slider = Slider(min=-1, max=1, step=0.01, default=-0.45, position=(-.5, -.4), parent=camera.ui)
+slider2 = Slider(min=1, max=100, step=0.01, default=10, position=(-.5, -.3), parent=camera.ui)
 
 camera.shader = clouds_shader
 
@@ -49,6 +52,9 @@ camera.set_shader_input("window_size", window.size)
 def update():
     camera.set_shader_input("camera_rot", camera.world_rotation)
     camera.set_shader_input("camera_pos",camera.world_position)
+    camera.set_shader_input("light_dir", sun.world_rotation)
+    sun.look_at(Vec3(sin(time.time()),-1,cos(time.time())))
     camera.set_shader_input("density", slider.value)
+    camera.set_shader_input("cloud_scale", slider2.value)
     
 app.run()
