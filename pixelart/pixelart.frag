@@ -20,8 +20,16 @@ vec3 dithering(vec3 color,vec2 uv){
     return color;
 }
 
+vec3 gamma_cor(vec3 color,float gamma){
+    return pow(color,vec3(gamma*100));
+}
+
+vec3 apply_palette(vec3 color){
+    return floor(color*(palette_size-1)+0.5)/(palette_size-1);
+}
+
 vec3 getColor(vec2 adapted_uv,vec2 uv){
-    return dithering(texture(tex, adapted_uv).rgb,adapted_uv);
+    return apply_palette(gamma_cor(dithering(texture(tex, adapted_uv).rgb,adapted_uv),gamma_correction));
 }
 
 in vec2 uv;
@@ -33,11 +41,6 @@ void main() {
 
 
     vec3 color = getColor(adapted_uv,uv);
-
-
-    //Applying color pallette
-    color = floor(color*(palette_size-1)+0.5)/(palette_size-1);
-    
 
     fragColor =vec4(color,1);
 
