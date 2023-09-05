@@ -6,6 +6,7 @@ in vec2 p3d_MultiTexCoord0;
 out vec2 texcoords;
 uniform float osg_FrameTime;
 uniform vec3 self_pos;
+uniform float wind_power;
 
 in vec3 position;
 in vec4 rotation;
@@ -24,8 +25,8 @@ void main() {
     
     texcoords = p3d_MultiTexCoord0;
     if (texcoords.y>0.5){
-        v.x += cos(rand(vec2(p3d_Vertex.zy))*16+osg_FrameTime) * 0.1;
+        v.x += cos(rand(vec2(p3d_Vertex.zy))*16+osg_FrameTime) * wind_power;
     }
 
-    gl_Position = p3d_ModelViewProjectionMatrix * (vec4(v + position-v, 1.));
+    gl_Position = p3d_ModelViewProjectionMatrix * (vec4(v + position-self_pos, 1.));
 }
