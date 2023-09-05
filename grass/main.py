@@ -4,11 +4,7 @@ from ursina.prefabs.first_person_controller import FirstPersonController
 from panda3d.core import Geom, GeomVertexArrayFormat, GeomVertexFormat, GeomVertexWriter, GeomVertexReader
 
 instancing_shader=Shader(name='instancing_shader', language=Shader.GLSL, vertex=open('instancing_shader.vert', 'r').read(),
-                         fragment=open('instancing_shader.frag', 'r').read(),
-                         default_input={
-                            'texture_scale' : Vec2(1,1),
-                            'texture_offset' : Vec2(0.0, 0.0)
-                        })
+                         fragment=open('instancing_shader.frag', 'r').read())
 
 app = Ursina()
 
@@ -70,34 +66,18 @@ def generate_grass(plane,grass,density=0.1,center=(0,0,0)):
             scale.add_data3(1,rand/2-.25+1,1)
     
     grass.setInstanceCount(int(plane.scale_x*plane.scale_z*density*density))
-    return vdata
     
-def update_grass(vdata,pos):
-    positionReader = GeomVertexReader(vdata, 'position')
-    position = GeomVertexWriter(vdata, 'position')
-    for i in range(vdata.getNumRows()):
-        position.add_data3(positionReader.getData3f()+pos*Vec3(-1,1,-1))
-
 
 fpc = FirstPersonController()
-vdata = generate_grass(ground,ograss,2,fpc.position)
+generate_grass(ground,ograss,2,fpc.position)
 
         
 #EditorCamera()
 
-
-
-last_pos = ograss.position
 def update():
-    global last_pos
     pos = Vec3()
     pos.xz = fpc.position.xz + camera.forward.xz * pow(15,(-camera.world_rotation_x+90)/90)
-    print((-camera.world_rotation_x+90)/90)
     pos.y = ground.y +.5
-    if pos != last_pos:
-        offset = pos - last_pos 
-        ograss.position = pos
-        last_pos = ograss.position  
-        update_grass(vdata,offset)
-    
+    ograss.position = pos
+    ograss.set_shader_input("self_pos",ograss.position)
 app.run()
