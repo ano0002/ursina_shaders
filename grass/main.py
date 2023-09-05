@@ -9,7 +9,7 @@ instancing_shader=Shader(name='instancing_shader', language=Shader.GLSL, vertex=
                                 'wind_power': 0.3
                          })
 
-app = Ursina()
+app = Ursina(vsync=False)
 
 
 grass_blade = Entity(model='quad',double_sided=True)
@@ -24,10 +24,10 @@ grass_blade_3.parent = ograss
 
 ograss.combine(auto_destroy=True)
 ograss.double_sided = True
-ograss.texture = 'grass'
+ograss.texture = 'grassblade'
 
 
-ground = Entity(model='plane', scale=100,y=-.5, collider='box', color=color.rgb(25,100,0))
+ground = Entity(model='plane',texture="grass", scale=10,y=-.5, collider='box')
 
 def generate_grass(plane,grass,density=0.1,center=(0,0,0)):
     grass.shader = instancing_shader
@@ -95,4 +95,6 @@ def update():
     ograss.position = pos
     ograss.set_shader_input("self_pos",ograss.position)
     ograss.set_shader_input("player_pos",fpc.position)
+    
+Sky()
 app.run()
