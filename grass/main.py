@@ -1,6 +1,6 @@
 from ursina import *
 import random
-from ursina.prefabs.first_person_controller import FirstPersonController
+from fpc import FirstPersonController
 from panda3d.core import Geom, GeomVertexArrayFormat, GeomVertexFormat, GeomVertexWriter, GeomVertexReader
 
 instancing_shader=Shader(name='instancing_shader', language=Shader.GLSL, vertex=open('instancing_shader.vert', 'r').read(),
@@ -27,7 +27,7 @@ ograss.double_sided = True
 ograss.texture = 'grassblade'
 
 
-ground = Entity(model='plane',texture="grass", scale=10,y=-.5, collider='box')
+ground = Entity(model=Terrain("Heightmap"),texture="grass", scale=(100,2,100),y=-.5)
 
 def generate_grass(plane,grass,density=0.1,center=(0,0,0)):
     grass.shader = instancing_shader
@@ -57,9 +57,15 @@ def generate_grass(plane,grass,density=0.1,center=(0,0,0)):
     for z in range(int(plane.scale_z*density)):
         for x in range(int(plane.scale_x*density)):
             rand = random.random()
-            grass_pos = Vec3(plane.x-plane.scale_x/2+x/density+random.random()/2-0.25,
-                                0,
-                                plane.z-plane.scale_z/2+z/density+random.random()/2-0.25)
+            hit_info = terraincast(Vec3(plane.x-plane.scale_x/2+x/density+rand/2-0.25,
+                                    ground.y+ground.scale_y,
+                                    plane.z-plane.scale_z/2+z/density+rand/2-0.25),
+                                    ground)
+            if not hit_info:
+                continue
+            grass_pos = Vec3(plane.x-plane.scale_x/2+x/density+rand/2-0.25,
+                                hit_info,
+                                plane.z-plane.scale_z/2+z/density+rand/2-0.25)
             grass_rot = Quat()
             
             grass_rot.set_hpr((random.random()*360,180,0))
@@ -78,7 +84,7 @@ def update_grass(vdata,pos):
         position.add_data3(positionReader.getData3f()+pos*Vec3(-1,1,-1))
 
 
-fpc = FirstPersonController()
+fpc = FirstPersonController(ground = ground)
 vdata = generate_grass(ground,ograss,2,fpc.position)
 
         
