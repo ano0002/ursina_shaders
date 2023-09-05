@@ -1,8 +1,7 @@
 from ursina import *
 import random
 from ursina.prefabs.first_person_controller import FirstPersonController
-from panda3d.core import Geom, GeomVertexArrayFormat, GeomVertexFormat, GeomVertexWriter, GeomVertexData,loadPrcFileData
-
+from panda3d.core import Geom, GeomVertexArrayFormat, GeomVertexFormat, GeomVertexWriter, GeomVertexReader
 
 instancing_shader=Shader(name='instancing_shader', language=Shader.GLSL, vertex=open('instancing_shader.vert', 'r').read(),
                          fragment=open('instancing_shader.frag', 'r').read(),
@@ -29,7 +28,7 @@ ograss.double_sided = True
 ograss.texture = 'grass'
 
 
-ground = Entity(model='plane', scale=10,y=-.5, collider='box', color=color.rgb(25,100,0))
+ground = Entity(model='plane', scale=100,y=-.5, collider='box', color=color.rgb(25,100,0))
 
 def generate_grass(plane,grass,density=0.1,center=(0,0,0)):
     grass.shader = instancing_shader
@@ -54,7 +53,6 @@ def generate_grass(plane,grass,density=0.1,center=(0,0,0)):
     rotation = GeomVertexWriter(vdata, 'rotation')
     scale = GeomVertexWriter(vdata, 'scale')
     
-    blades = []
     grass.position = plane.position+(0,0.5,0)
     grass.enable()
     for z in range(int(plane.scale_z*density)):
@@ -63,25 +61,43 @@ def generate_grass(plane,grass,density=0.1,center=(0,0,0)):
             grass_pos = Vec3(plane.x-plane.scale_x/2+x/density+random.random()/2-0.25,
                                 0,
                                 plane.z-plane.scale_z/2+z/density+random.random()/2-0.25)
-            grass_rot = Entity(rotation=Vec3(0,rand*360,180))
+            grass_rot = Quat()
+            
+            grass_rot.set_hpr((random.random()*360,180,0))
 
             position.add_data3(*grass_pos)
-            rotation.add_data4(grass_rot.quaternion)
-            destroy(grass_rot)
+            rotation.add_data4(*grass_rot)
             scale.add_data3(1,rand/2-.25+1,1)
     
     grass.setInstanceCount(int(plane.scale_x*plane.scale_z*density*density))
+    return vdata
     
-    return blades
-
+def update_grass(vdata,pos):
+    positionReader = GeomVertexReader(vdata, 'position')
+    position = GeomVertexWriter(vdata, 'position')
+    for i in range(vdata.getNumRows()):
+        position.add_data3(positionReader.getData3f()+pos*Vec3(-1,1,-1))
 
 
 fpc = FirstPersonController()
-grass = generate_grass(ground,ograss,2,fpc.position)
+vdata = generate_grass(ground,ograss,2,fpc.position)
 
         
-EditorCamera()
+#EditorCamera()
 
-print(len(ograss.model.vertices) * len(grass))
 
+
+last_pos = ograss.position
+def update():
+    global last_pos
+    pos = Vec3()
+    pos.xz = fpc.position.xz + camera.forward.xz * pow(15,(-camera.world_rotation_x+90)/90)
+    print((-camera.world_rotation_x+90)/90)
+    pos.y = ground.y +.5
+    if pos != last_pos:
+        offset = pos - last_pos 
+        ograss.position = pos
+        last_pos = ograss.position  
+        update_grass(vdata,offset)
+    
 app.run()
