@@ -77,30 +77,20 @@ def generate_grass(plane,grass,density=0.1,center=(0,0,0)):
     grass.setInstanceCount(int(plane.scale_x*plane.scale_z*density*density))
     return vdata
     
-def update_grass(vdata,pos):
-    positionReader = GeomVertexReader(vdata, 'position')
-    position = GeomVertexWriter(vdata, 'position')
-    for i in range(vdata.getNumRows()):
-        position.add_data3(positionReader.getData3f()+pos*Vec3(-1,1,-1))
-
-
 fpc = FirstPersonController(ground = ground)
-vdata = generate_grass(ground,ograss,2,fpc.position)
+generate_grass(ground,ograss,2,fpc.position)
 
         
 #EditorCamera()
 
 
 
-last_pos = ograss.position
 def update():
-    global last_pos
     pos = Vec3()
     pos.xz = fpc.position.xz + camera.forward.xz * pow(15,(-camera.world_rotation_x+90)/90)
     pos.y = ground.y +.5
     ograss.position = pos
     ograss.set_shader_input("self_pos",ograss.position)
-    ograss.set_shader_input("player_pos",fpc.position)
     
 Sky()
 app.run()
