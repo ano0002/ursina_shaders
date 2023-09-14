@@ -50,14 +50,6 @@ class FirstPersonController(Entity):
 
         move_amount = self.direction * time.dt * self.speed
 
-        if raycast(self.position+Vec3(-.0,1,0), Vec3(1,0,0), distance=.5, traverse_target=self.traverse_target, ignore=self.ignore_list).hit:
-            move_amount[0] = min(move_amount[0], 0)
-        if raycast(self.position+Vec3(-.0,1,0), Vec3(-1,0,0), distance=.5, traverse_target=self.traverse_target, ignore=self.ignore_list).hit:
-            move_amount[0] = max(move_amount[0], 0)
-        if raycast(self.position+Vec3(-.0,1,0), Vec3(0,0,1), distance=.5, traverse_target=self.traverse_target, ignore=self.ignore_list).hit:
-            move_amount[2] = min(move_amount[2], 0)
-        if raycast(self.position+Vec3(-.0,1,0), Vec3(0,0,-1), distance=.5, traverse_target=self.traverse_target, ignore=self.ignore_list).hit:
-            move_amount[2] = max(move_amount[2], 0)
         self.position += move_amount
 
         # self.position += self.direction * self.speed * time.dt
@@ -68,7 +60,7 @@ class FirstPersonController(Entity):
             ray = terraincast(self.world_position+(0,self.height,0),self.ground)
             # ray = boxcast(self.world_position+(0,2,0), self.down, ignore=self.ignore_list)
 
-            if ray <= self.height+.1:
+            if ray and ray <= self.height+.1:
                 if not self.grounded:
                     self.land()
                 self.grounded = True
