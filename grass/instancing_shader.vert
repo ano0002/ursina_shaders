@@ -4,9 +4,12 @@ uniform mat4 p3d_ModelViewProjectionMatrix;
 in vec4 p3d_Vertex;
 in vec2 p3d_MultiTexCoord0;
 out vec2 texcoords;
+out float depth;
 uniform float osg_FrameTime;
 uniform vec3 self_pos;
 uniform float wind_power;
+uniform vec3 cam_pos;
+uniform float fog_distance;
 
 in vec3 position;
 in vec4 rotation;
@@ -29,4 +32,5 @@ void main() {
     }
 
     gl_Position = p3d_ModelViewProjectionMatrix * (vec4(v + position-self_pos, 1.));
+    depth= length(position-self_pos-cam_pos)/fog_distance;
 }
