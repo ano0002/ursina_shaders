@@ -209,7 +209,7 @@ vec3 GetLight(vec3 p)
 }
 
 float getTransparency(vec3 p){
-    return clamp(.0,0.5- clamp(0f,get_height(p.xz),0.5)+three_noise(p/cloud_scale)*exp(density+1),1f);
+    return clamp(.0,0.5- clamp(.0,get_height(p.xz),0.5)+three_noise(p/cloud_scale)*exp(density+1),1.0);
 }
 
 in vec2 uv;
@@ -227,7 +227,7 @@ void main()
 
     vec3 rd = normalize(camera_right*uv.x+camera_up*uv.y+camera_forward);
 
-    float d = clamp(0f,RayMarch(ro,rd),MAX_DIST); // Distance
+    float d = clamp(.0,RayMarch(ro,rd),MAX_DIST); // Distance
     vec3 p = ro + rd * d;
 
     vec3 l = GetLight(p); // Light
