@@ -136,81 +136,13 @@ float three_noise(vec3 p){
     return o4.y * d.y + o4.x * (1.0 - d.y);
 }
 
-float get_height(vec2 pos){
-    return snoise(pos/cloud_scale-wind_speed*osg_FrameTime);
-}
-
-
-float sdPlane( vec3 p, vec4 n )
-{
-    float height = get_height(p.xz)* abs(cloud_height);
-    // n must be normalized
-    return dot(p,n.xyz) + n.w+height;
-}  
-
-float GetDist(vec3 p)
-{
-    return sdPlane(p,vec4(0,-1,0,camera_pos.y+sky_height));
-}
-
-float RayMarch(vec3 ro, vec3 rd) 
-{
-    float dO = 0.; //Distance Origin
-    for(int i=0;i<MAX_STEPS;i++)
-    {
-        vec3 p = ro + rd * dO;
-        float ds = GetDist(p); // ds is Distance Scene
-        dO += ds;
-        if(dO > MAX_DIST || ds < SURFACE_DIST) break;
+vec3 y_coordinates_collision_point(vec3 ro, vec3 rd,float y){
+    if (dot(rd,vec3(0,1,0)) < 0){
+        return vec3(-1);
     }
-    return dO;
+    return ro+rd*((y-ro.y)/rd.y);
 }
 
-const mat3 id_three = mat3(1,0,0,0,1,0,0,0,1);
-
-
-vec3 GetNormal(vec3 p)
-{ 
-    float d = GetDist(p); // Distance
-    vec2 e = vec2(.001,0); // Epsilon
-    vec3 n = d - vec3(
-    GetDist(p-e.xyy),  
-    GetDist(p-e.yxy),
-    GetDist(p-e.yyx));
-   
-    return normalize(n);
-}
-
-
-vec3 GetLight(vec3 p)
-{ 
-    //Ambient light
-    vec3 dif = light_color * ambient_strength;
-
-    // Directional light
-    vec3 n = GetNormal(p); // Normal Vector
-   
-    vec3 u_light_dir = normalize(light_dir.xzy*vec3(-1,-1,1));
-
-
-    float brightness = dot(n, u_light_dir);
-    brightness = clamp(brightness, 0, 1);
-
-    dif += light_color * brightness;
-
-    /*
-    // Shadows
-    float d = RayMarch(p+n*SURF_DIST*2., l); 
-
-    if(d<length(lightPos-p)) dif *= .1;
- 
-    */
-    return dif;
-}
-
-float getTransparency(vec3 p){
-    return clamp(.0,0.5- clamp(.0,get_height(p.xz),0.5)+three_noise(p/cloud_scale)*exp(density+1),1.0);
-}
 
 in vec2 uv;
 in vec2 adapted_uv;
@@ -225,20 +157,36 @@ void main()
     vec4 background = texture2D(background_tex, adapted_uv);
     vec3 ro = camera_pos;
 
-    vec3 rd = normalize(camera_right*uv.x+camera_up*uv.y+camera_forward);
+    vec3 rd = normalize(camera_right*uv.x+camera_up*uv.y*aspect_ratio+camera_forward);
 
-    float d = clamp(.0,RayMarch(ro,rd),MAX_DIST); // Distance
-    vec3 p = ro + rd * d;
+    vec3 p_in = y_coordinates_collision_point(ro,rd,sky_height);
+    vec3 p_out = y_coordinates_collision_point(ro,rd,sky_height+cloud_height);
+    if (rd.y < sky_height){
+        vec3 tmp = p_in;
+        p_in = p_out;
+        p_out = tmp;
+    }
 
-    vec3 l = GetLight(p); // Light
-
-    float t = getTransparency(p);
-
-    d /= MAX_DIST;
-
-    if (d > threshold || d < 0 || get_height(p.xz) < density){
+    if (p_in.x == -1 || p_out.x == -1 || length(ro-p_in) > MAX_DIST){
         color = background;
         return;
     }
-    color = mix(vec4(l,1),background,t);
+    float l = length(p_out-p_in);
+
+    //Apply beerLambert's law
+    float transparency = exp(-l*density);
+
+    //Add Noise to the cloud
+    vec3 p = p_in;
+    transparency *= 1.0 - three_noise((p+vec3(wind_speed.x,0,wind_speed.y)*osg_FrameTime)*cloud_scale/10);
+
+    //Add transparency the farthest the clouds are
+    transparency *= clamp(0.0,1-length(p_in-ro)/MAX_DIST,1.0);
+
+    //Calculate the light
+    vec3 n = normalize(p_out-p_in);
+    float diffuse = clamp(dot(n,light_dir),0,1);
+    vec3 light = light_color*(diffuse+ambient_strength);
+
+    color = mix(background,vec4(light,1),transparency);
 }
