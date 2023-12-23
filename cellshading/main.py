@@ -26,7 +26,7 @@ car = Entity(model='pony_cartoon.glb',scale = 10,shader=cellshading_shader)
 car.set_shader_input("brightness", 5)
 
 
-sphere = Entity(model="sphere", texture="gradient",position = Vec3(-10,-1,30) ,scale = 0.5,shader=cellshading_shader)
+sphere = Entity(model="sphere", texture="gradient",position = Vec3(-10,-1,30) ,scale = 5,shader=cellshading_shader)
 
 EditorCamera(position = Vec3(0.0520753, 6, -6.87218),fov=5)
 
