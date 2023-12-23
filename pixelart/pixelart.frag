@@ -14,7 +14,7 @@ vec3 dithering(vec3 color,vec2 uv){
                               3, 11, 1, 9,
                               15, 7, 13, 5) * 0.0625;
      
-    vec2 xy = (uv*resolution) % 4;
+    vec2 xy = mod((uv*resolution),4);
     float dither = dither_matrix[int(xy.x)][int(xy.y)];
     color = clamp(color + spread * dither-1/2, 0.0, 1.0);
     return color;
@@ -35,7 +35,7 @@ vec3 getColor(vec2 adapted_uv,vec2 uv){
 in vec2 uv;
 out vec4 fragColor;
 void main() {
-    vec2 offset = uv % (pixel_size* 1/resolution); 
+    vec2 offset = mod(uv, (pixel_size* 1/resolution)); 
     
     vec2 adapted_uv = uv - offset;
 

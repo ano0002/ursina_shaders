@@ -29,7 +29,7 @@ ograss.double_sided = True
 ograss.texture = 'grassblade'
 
 
-ground = Entity(model=Terrain("Heightmap"),color= color.rgb(0,154,0), scale=(100,2,100),y=-.5)
+ground = Entity(model=Terrain("Heightmap"),color= color.rgb(0,154,0), scale=(250,2,250),y=-.5)
 
 def generate_grass(plane,grass,density=0.1,center=(0,0,0)):
     grass.shader = instancing_shader
