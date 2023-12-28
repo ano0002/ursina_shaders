@@ -1,5 +1,7 @@
 #version 430
 
+// Adaptated from https://www.shadertoy.com/view/7l3cD4
+
 uniform float thickness;
 uniform float density;
 uniform vec4 vein_color;
